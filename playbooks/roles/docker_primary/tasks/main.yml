@@ -1,0 +1,45 @@
+---
+- name: Remove Podman if installed
+  yum:
+    name: podman
+    state: absent
+
+- name: Add Docker CE repository
+  yum_repository:
+    name: docker-ce
+    description: Docker CE Stable - $basearch
+    baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+    gpgcheck: yes
+    gpgkey: https://download.docker.com/linux/centos/gpg
+    enabled: yes
+
+- name: Install Docker and dependencies
+  yum:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    state: present
+
+- name: Enable and start Docker service
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Initialize Docker Swarm
+  command: docker swarm init --advertise-addr {{ ansible_host }}
+  register: swarm_init_output
+  changed_when: "'Error' not in swarm_init_output.stderr"
+  failed_when: false
+
+- name: Get worker join token
+  command: docker swarm join-token worker -q
+  register: worker_token
+
+- name: Save worker token to file
+  copy:
+    dest: /root/worker_token.txt
+    content: "{{ worker_token.stdout }}"
+

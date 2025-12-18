@@ -1,0 +1,11 @@
+options {
+    directory "/var/named";
+    recursion yes;
+    allow-query { any; };
+};
+
+zone "{{ dns_zone_name }}" IN {
+    type master;
+    file "{{ dns_zone_file }}";
+};
+

@@ -1,0 +1,13 @@
+- name: Start docker service
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Join Docker swarm
+  command: >
+    docker swarm join
+    --token {{ worker_token }}
+    {{ swarm_manager_ip }}:2377
+  when: worker_token is defined
+

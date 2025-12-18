@@ -1,0 +1,78 @@
+# tasks file for common
+
+---
+- name: Update all packages
+  yum:
+    name: '*'
+    state: latest
+
+- name: Ensure firewalld is running and enabled
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+
+- name: Copy /etc/hosts file from template
+  template:
+    src: hosts.j2
+    dest: /etc/hosts
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure sshd
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - { regexp: '^PasswordAuthentication', line: 'PasswordAuthentication no' }
+    - { regexp: '^PermitRootLogin', line: 'PermitRootLogin no' }
+
+- name: Restart sshd
+  service:
+    name: sshd
+    state: restarted
+
+- name: Install chrony
+  yum:
+    name: chrony
+    state: present
+
+- name: Enable and start chrony
+  service:
+    name: chronyd
+    state: started
+    enabled: yes
+
+---
+# COMMON ROLE – BASE SYSTEM SETUP
+
+- name: Ensure ansible user exists
+  user:
+    name: ansible
+    shell: /bin/bash
+    create_home: yes
+
+- name: Allow ansible user passwordless sudo
+  copy:
+    dest: /etc/sudoers.d/ansible
+    content: "ansible ALL=(ALL) NOPASSWD:ALL"
+    owner: root
+    group: root
+    mode: '0440'
+
+- name: Create .ssh directory for ansible user
+  file:
+    path: /home/ansible/.ssh
+    state: directory
+    owner: ansible
+    group: ansible
+    mode: '0700'
+
+- name: Install authorized SSH key for ansible user
+  authorized_key:
+    user: ansible
+    state: present
+    key: "{{ lookup('file', '/home/ansible/.ssh/id_rsa.pub') }}"
+

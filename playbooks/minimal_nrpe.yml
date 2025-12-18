@@ -1,0 +1,35 @@
+---
+- name: Install and configure NRPE on client servers
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install NRPE and Nagios plugins
+      dnf:
+        name:
+          - nrpe
+          - nagios-plugins-all
+        state: present
+      register: install_result
+
+    - name: Enable and start NRPE service
+      systemd:
+        name: nrpe
+        enabled: yes
+        state: started
+
+    - name: Configure allowed_hosts
+      lineinfile:
+        path: /etc/nagios/nrpe.cfg
+        regexp: '^allowed_hosts='
+        line: 'allowed_hosts=127.0.0.1,192.168.1.94'  # Nagios server IP
+        state: present
+      notify:
+        - Restart NRPE
+
+  handlers:
+    - name: Restart NRPE
+      systemd:
+        name: nrpe
+        state: restarted
+

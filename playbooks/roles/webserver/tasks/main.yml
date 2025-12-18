@@ -1,0 +1,37 @@
+---
+- name: Install Apache
+  dnf:
+    name: httpd
+    state: present
+ 
+- name: Enable and start Apache
+  systemd:
+    name: httpd
+    enabled: yes
+    state: started
+ 
+- name: Allow HTTP in firewall
+  firewalld:
+    service: http
+    permanent: yes
+    state: enabled
+    immediate: yes
+  ignore_errors: yes
+ 
+- name: Create test index page
+  copy:
+    dest: /var/www/html/index.html
+    content: |
+      <html>
+      <head><title>Webserver OK</title></head>
+      <body> 
+      <h1>This is my Webserver!</h1>
+      </body>
+      </html>
+    mode: "0644"
+  notify: restart httpd
+
+- name: Disable SELinux
+  selinux:
+    state: disabled
+ 

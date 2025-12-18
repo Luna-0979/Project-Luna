@@ -1,0 +1,105 @@
+---
+- name: Install NRPE and Nagios plugins from source on clients
+  hosts: all
+  become: yes
+
+  vars:
+    nrpe_version: "4.1.0"
+    nagios_plugins_version: "2.4.9"
+    nrpe_url: "https://github.com/NagiosEnterprises/nrpe/releases/download/nrpe-{{ nrpe_version }}/nrpe-{{ nrpe_version }}.tar.gz"
+    plugins_url: "https://github.com/nagios-plugins/nagios-plugins/releases/download/release-{{ nagios_plugins_version }}/nagios-plugins-{{ nagios_plugins_version }}.tar.gz"
+
+  tasks:
+    - name: Install build dependencies
+      dnf:
+        name:
+          - gcc
+          - glibc
+          - glibc-common
+          - make
+          - openssl-devel
+          - xinetd
+          - wget
+          - tar
+          - unzip
+          - perl
+        state: present
+
+    - name: Create build directory
+      file:
+        path: /tmp/nrpe_build
+        state: directory
+        mode: '0755'
+
+    - name: Download NRPE source
+      get_url:
+        url: "{{ nrpe_url }}"
+        dest: /tmp/nrpe_build/nrpe.tar.gz
+
+    - name: Extract NRPE
+      unarchive:
+        src: /tmp/nrpe_build/nrpe.tar.gz
+        dest: /tmp/nrpe_build/
+        remote_src: yes
+
+    - name: Compile and install NRPE
+      shell: |
+        cd /tmp/nrpe_build/nrpe-{{ nrpe_version }}
+        ./configure --enable-command-args
+        make all
+        make install-groups-users
+        make install
+        make install-config
+        make install-init
+      args:
+        creates: /usr/local/nagios/bin/nrpe
+
+    - name: Download Nagios plugins
+      get_url:
+        url: "{{ plugins_url }}"
+        dest: /tmp/nrpe_build/plugins.tar.gz
+
+    - name: Extract Nagios plugins
+      unarchive:
+        src: /tmp/nrpe_build/plugins.tar.gz
+        dest: /tmp/nrpe_build/
+        remote_src: yes
+
+    - name: Compile and install Nagios plugins
+      shell: |
+        cd /tmp/nrpe_build/nagios-plugins-{{ nagios_plugins_version }}
+        ./configure
+        make
+        make install
+      args:
+        creates: /usr/local/nagios/libexec/check_load
+
+    - name: Configure NRPE xinetd service
+      copy:
+        dest: /etc/xinetd.d/nrpe
+        content: |
+          service nrpe
+          {
+              flags           = REUSE
+              socket_type     = stream
+              wait            = no
+              user            = nagios
+              group           = nagios
+              server          = /usr/local/nagios/bin/nrpe
+              server_args     = -c /usr/local/nagios/etc/nrpe.cfg --inetd
+              log_on_failure  += USERID
+              disable         = no
+          }
+        mode: '0644'
+
+    - name: Enable and start xinetd
+      systemd:
+        name: xinetd
+        state: started
+        enabled: yes
+
+    - name: Restart xinetd to apply NRPE
+      systemd:
+        name: xinetd
+        state: restarted
+

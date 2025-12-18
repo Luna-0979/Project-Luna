@@ -1,0 +1,17 @@
+---
+- name: Install BIND package
+  yum:
+    name: bind
+    state: present
+
+- name: Copy named.conf
+  template:
+    src: named.conf.j2
+    dest: /etc/named.conf
+
+- name: Start and enable named
+  service:
+    name: named
+    state: started
+    enabled: yes
+

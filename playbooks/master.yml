@@ -1,0 +1,16 @@
+---
+- hosts: all
+  become: yes
+  gather_facts: yes
+  roles:
+    - dns
+    - ntp
+    - webserver
+    - haproxy
+    - mysql
+    - docker_primary
+    - docker_worker
+    - nagios
+    - ftp
+    - nfs
+

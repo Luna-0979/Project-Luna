@@ -1,0 +1,8 @@
+- hosts: docker_workers
+  become: yes
+  vars:
+    swarm_manager_ip: 192.168.1.93
+    worker_token: "{{ hostvars['192.168.1.93']['worker_token'] }}"
+  roles:
+    - docker_worker
+

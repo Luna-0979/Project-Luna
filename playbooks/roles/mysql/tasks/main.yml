@@ -1,0 +1,21 @@
+---
+- name: Install MariaDB
+  yum:
+    name: mariadb-server
+    state: present
+
+- name: Start and enable MariaDB
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Set root password
+  mysql_user:
+    login_user: root
+    login_password: ''
+    user: root
+    password: 'YourRootPassword'
+    host_all: yes
+    state: present
+

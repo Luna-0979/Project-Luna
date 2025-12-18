@@ -1,0 +1,35 @@
+- name: Setup Apache HTTP on target servers
+  hosts: nfs,web
+  become: yes
+
+  tasks:
+    - name: Install Apache (httpd)
+      dnf:
+        name: httpd
+        state: present
+
+    - name: Ensure Apache service is started and enabled
+      systemd:
+        name: httpd
+        state: started
+        enabled: yes
+
+    - name: Open HTTP port in firewall
+      firewalld:
+        service: http
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+    - name: Add test index.html file
+      copy:
+        content: "Hello from {{ inventory_hostname }}"
+        dest: /var/www/html/index.html
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Temporarily set SELinux to permissive (for testing)
+      command: setenforce 0
+      ignore_errors: yes
+

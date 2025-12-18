@@ -1,0 +1,27 @@
+---
+- name: Mount NFS share on client servers
+  hosts: all_servers   
+  become: yes
+
+  tasks:
+    - name: Install NFS client packages
+      yum:
+        name: nfs-utils
+        state: present
+
+    - name: Create mount point
+      file:
+        path: /mnt/nfs_share
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Mount NFS share
+      mount:
+        path: /mnt/nfs_share
+        src: 192.168.1.96:/home/nfs_share
+        fstype: nfs
+        opts: defaults
+        state: mounted
+

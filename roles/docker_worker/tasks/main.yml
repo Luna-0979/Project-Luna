@@ -1,0 +1,8 @@
+# tasks file for docker_worker
+
+---
+- name: Install Docker client
+  yum:
+    name: docker-ce-cli
+    state: present
+
